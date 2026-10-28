@@ -551,7 +551,11 @@ const actions = {
     if (!dialog.querySelector("#publish-approval").checked)
       throw new Error("Marque a autorização após revisar.");
     try {
-      await api("/api/publish", { id: el.dataset.id, confirmed: true });
+      await api("/api/publish", {
+        id: el.dataset.id,
+        confirmed: true,
+        expected_text: byID("posts", el.dataset.id).text,
+      });
       close();
       await refresh();
       toast("Publicação criada no LinkedIn.");
@@ -562,7 +566,8 @@ const actions = {
     }
   },
   "schedule-modal": async (el) => {
-    await savePostText(el.dataset.id);
+    const saved = await savePostText(el.dataset.id);
+    state.posts = state.posts.map((post) => post.id === saved.id ? saved : post);
     modal(
       "Agendar publicação",
       `<form id="schedule-form" data-id="${esc(el.dataset.id)}"><div class="dialog-content"><div class="notice warn">O aplicativo precisa estar funcionando no computador e conectado ao LinkedIn para publicar no horário.</div>${field("scheduled_at", "Data e horário no seu fuso", "", "", "datetime-local")}<label class="check"><input name="approved" type="checkbox" required>Revisei o texto e autorizo sua publicação pública no horário escolhido.</label></div><div class="dialog-footer"><button type="submit" class="primary">Confirmar agendamento</button></div></form>`,
@@ -763,6 +768,7 @@ document.addEventListener("submit", async (event) => {
         id: form.dataset.id,
         scheduled_at: new Date(data.scheduled_at).toISOString(),
         confirmed: form.elements.approved.checked,
+        expected_text: byID("posts", form.dataset.id).text,
       });
       close();
       await refresh();

@@ -46,3 +46,14 @@ class StorageTests(unittest.TestCase):
         self.store.change_post(post["id"], ("rascunho",), {"status": "verificar"})
         with self.assertRaises(ValueError):
             self.store.change_post(post["id"], ("rascunho",), {"status": "verificar"})
+
+    def test_text_changed_after_review_cannot_be_claimed(self):
+        post = self.store.put("posts", {"status": "rascunho", "text": "Texto editado"})
+        with self.assertRaisesRegex(ValueError, "mudou"):
+            self.store.change_post(post["id"], ("rascunho",), {"status": "verificar"}, expected={"text": "Texto revisado anteriormente"})
+        self.assertEqual(self.store.get("posts", post["id"])["status"], "rascunho")
+
+    def test_restore_suspends_scheduled_posts(self):
+        self.store.put("posts", {"text": "Conteúdo", "status": "agendado", "scheduled_at": "2027-01-01T12:00:00+00:00"})
+        self.store.restore(self.store.export())
+        self.assertEqual(self.store.all("posts")[0]["status"], "rascunho")

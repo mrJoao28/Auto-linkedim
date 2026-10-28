@@ -328,17 +328,19 @@ def make_handler(store, integrations, base_url, chatgpt=None, preview=False):
                 post = store.get("posts", data["id"])
                 if not post or post["status"] != "rascunho":
                     raise ValueError("Somente rascunhos podem ser alterados.")
-                post["text"] = str(data["text"]).strip()
-                if not 1 <= len(post["text"]) <= 3000:
+                text = str(data["text"]).strip()
+                if not 1 <= len(text) <= 3000:
                     raise ValueError("O post deve ter de 1 a 3.000 caracteres.")
-                return store.put("posts", post)
+                return store.change_post(post["id"], ("rascunho",), {"text": text})
             if path == "/api/publish":
                 post = store.get("posts", data["id"])
                 if not post or post["status"] != "rascunho" or data.get("confirmed") is not True:
                     raise ValueError("Revise e confirme a publicação do rascunho.")
                 if not 1 <= len(post["text"]) <= 3000:
                     raise ValueError("O post deve ter de 1 a 3.000 caracteres.")
-                return publish_post(store, integrations, post["id"], ("rascunho",))
+                if not isinstance(data.get("expected_text"), str):
+                    raise ValueError("Abra a prévia e revise o texto antes de publicar.")
+                return publish_post(store, integrations, post["id"], ("rascunho",), reviewed_text=data["expected_text"])
             if path == "/api/schedule":
                 if data.get("confirmed") is not True:
                     raise ValueError("Confirme o texto e o agendamento.")
@@ -348,7 +350,9 @@ def make_handler(store, integrations, base_url, chatgpt=None, preview=False):
                 date = datetime.fromisoformat(str(data["scheduled_at"]).replace("Z", "+00:00"))
                 if date.tzinfo is None or date <= datetime.now(timezone.utc):
                     raise ValueError("Escolha uma data futura com fuso horário.")
-                return store.change_post(post["id"], ("rascunho",), {"status": "agendado", "scheduled_at": date.astimezone(timezone.utc).isoformat(), "error": ""})
+                if not isinstance(data.get("expected_text"), str):
+                    raise ValueError("Revise e salve o texto antes de agendar.")
+                return store.change_post(post["id"], ("rascunho",), {"status": "agendado", "scheduled_at": date.astimezone(timezone.utc).isoformat(), "error": ""}, expected={"text": data["expected_text"]})
             if path == "/api/cancel-schedule":
                 return store.change_post(data["id"], ("agendado",), {"status": "rascunho", "scheduled_at": None})
             if path == "/api/recover-post":

@@ -5,10 +5,11 @@ from datetime import datetime, timezone
 from carreira.storage import now
 
 
-def publish_post(store, integrations, post_id, allowed=("rascunho", "agendado")):
+def publish_post(store, integrations, post_id, allowed=("rascunho", "agendado"), reviewed_text=None):
     # Falha antes de registrar tentativa se a conta nem sequer estiver conectada.
     integrations.account("linkedin")
-    post = store.change_post(post_id, allowed, {"status": "verificar", "attempted_at": now(), "error": ""})
+    post = store.change_post(post_id, allowed, {"status": "verificar", "attempted_at": now(), "error": ""},
+                             expected={"text": reviewed_text} if reviewed_text is not None else None)
     try:
         result = integrations.publish(post["text"])
         return store.change_post(post_id, ("verificar",), {**result, "status": "publicado", "published_at": now()})

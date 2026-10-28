@@ -64,7 +64,7 @@ class Store:
     def get(self, table, item_id):
         return next((item for item in self.all(table) if item["id"] == item_id), None)
 
-    def change_post(self, item_id, allowed, changes):
+    def change_post(self, item_id, allowed, changes, expected=None):
         """Compare-and-set transacional evita duas publicações da mesma versão."""
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -74,6 +74,8 @@ class Store:
             post = json.loads(row[0])
             if post.get("status") not in allowed:
                 raise ValueError("A postagem já mudou de estado. Atualize a página.")
+            if expected and any(post.get(key) != value for key, value in expected.items()):
+                raise ValueError("O texto mudou depois da revisão. Atualize e confira novamente.")
             post.update(changes)
             db.execute("UPDATE posts SET payload=? WHERE id=?", (json.dumps(post, ensure_ascii=False), item_id))
         return post
