@@ -1,0 +1,2 @@
+# Necessário apenas para validar com segurança o login oficial do ChatGPT.
+PyJWT[crypto]>=2.10.1,<3
