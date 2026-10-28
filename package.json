@@ -1,0 +1,10 @@
+{
+  "name": "auto-linkedim",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Aplicativo pessoal local de currículos, candidaturas e publicações",
+  "scripts": {
+    "dev": "SITES_MANAGED_LINUX_CONTAINER=1 python3 scripts/preview.py",
+    "check": "node --check web/app.js"
+  }
+}
